@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "https://parallelife.origo-cn.com/",
+      "permanent": false
+    }
+  ]
+}
