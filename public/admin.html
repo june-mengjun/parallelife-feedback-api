@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>平行人生档案 / 反馈后台</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0d0f0c;
+        --panel: #151914;
+        --line: rgba(236, 227, 209, 0.14);
+        --paper: #ece3d1;
+        --muted: rgba(236, 227, 209, 0.6);
+        --green: #b5ff62;
+        --red: #ff5a4d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background:
+          linear-gradient(90deg, rgba(236, 227, 209, 0.035) 1px, transparent 1px),
+          linear-gradient(rgba(236, 227, 209, 0.035) 1px, transparent 1px),
+          var(--bg);
+        background-size: 22px 22px, 22px 22px, auto;
+        color: var(--paper);
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      main {
+        width: min(1120px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 32px 0 48px;
+      }
+
+      header {
+        display: flex;
+        gap: 16px;
+        align-items: flex-end;
+        justify-content: space-between;
+        margin-bottom: 18px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(32px, 6vw, 64px);
+        line-height: 0.96;
+        letter-spacing: 0;
+      }
+
+      .tag {
+        color: var(--green);
+        font-size: 12px;
+        font-weight: 950;
+        letter-spacing: 0.14em;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(21, 25, 20, 0.88);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+      }
+
+      .toolbar {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 10px;
+        padding: 14px;
+        margin-bottom: 14px;
+      }
+
+      input,
+      button {
+        min-height: 44px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        font: inherit;
+        font-weight: 850;
+      }
+
+      input {
+        width: 100%;
+        padding: 0 13px;
+        outline: none;
+        background: rgba(236, 227, 209, 0.06);
+        color: var(--paper);
+      }
+
+      button {
+        padding: 0 16px;
+        background: var(--green);
+        color: #11140f;
+        cursor: pointer;
+      }
+
+      button.secondary {
+        background: rgba(236, 227, 209, 0.07);
+        color: var(--paper);
+      }
+
+      .status {
+        margin: 0 0 14px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .table-wrap {
+        overflow: auto;
+      }
+
+      table {
+        width: 100%;
+        min-width: 980px;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 12px 13px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+        font-size: 13px;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #11140f;
+        color: var(--green);
+        font-size: 11px;
+        font-weight: 950;
+        letter-spacing: 0.08em;
+      }
+
+      td {
+        color: rgba(236, 227, 209, 0.86);
+      }
+
+      .message {
+        max-width: 280px;
+        white-space: pre-wrap;
+      }
+
+      .empty {
+        padding: 34px 16px;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      @media (max-width: 720px) {
+        header,
+        .toolbar {
+          grid-template-columns: 1fr;
+        }
+
+        header {
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <div class="tag">PL-FEEDBACK / PRIVATE CONSOLE</div>
+          <h1>反馈后台</h1>
+        </div>
+        <p class="status" id="status">请输入 ADMIN_TOKEN 读取反馈。</p>
+      </header>
+
+      <section class="panel toolbar">
+        <input id="token" type="password" placeholder="ADMIN_TOKEN" autocomplete="current-password" />
+        <button id="load">读取反馈</button>
+        <button class="secondary" id="csv">导出 CSV</button>
+      </section>
+
+      <section class="panel table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>像不像</th>
+              <th>Idea</th>
+              <th>实现</th>
+              <th>进化方向</th>
+              <th>分享</th>
+              <th>人生物种</th>
+              <th>偏移值</th>
+              <th>留言</th>
+            </tr>
+          </thead>
+          <tbody id="rows">
+            <tr>
+              <td class="empty" colspan="9">暂无数据。系统还在装作深沉。</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <script>
+      const tokenInput = document.querySelector("#token");
+      const statusEl = document.querySelector("#status");
+      const rowsEl = document.querySelector("#rows");
+      const loadBtn = document.querySelector("#load");
+      const csvBtn = document.querySelector("#csv");
+
+      const improveLabels = {
+        wilder_quiz: "题目更疯",
+        more_like_me: "结果更像我",
+        sharper_roast: "锐评更狠",
+        cooler_visual: "视觉更酷",
+        smoother_share: "分享更顺",
+        shorter_flow: "流程更短",
+      };
+
+      const shareLabels = {
+        yes: "会甩",
+        maybe: "可能",
+        no: "暂时不会",
+      };
+
+      const matchLabels = {
+        too_real: "太像了",
+        close: "有点像",
+        not_me: "不像",
+        parallel_me: "像另一个我",
+      };
+
+      tokenInput.value = localStorage.getItem("parallelife_admin_token") || "";
+
+      function formatImprove(parts) {
+        const list = Array.isArray(parts) ? parts : [];
+        return list.map((item) => improveLabels[item] || item).join(" / ") || "-";
+      }
+
+      function renderRows(rows) {
+        if (!rows.length) {
+          rowsEl.innerHTML = '<tr><td class="empty" colspan="9">暂无数据。系统还在装作深沉。</td></tr>';
+          return;
+        }
+
+        rowsEl.innerHTML = rows
+          .map(
+            (row) => `
+              <tr>
+                <td>${row.created_at || "-"}</td>
+                <td>${matchLabels[row.match_level] || row.match_level || "-"}</td>
+                <td>${row.idea_score || 0}</td>
+                <td>${row.version_score || 0}</td>
+                <td>${formatImprove(row.improve_parts)}</td>
+                <td>${shareLabels[row.share_intent] || row.share_intent || "-"}</td>
+                <td>${row.species || "-"}</td>
+                <td>${row.deviation || 0}%</td>
+                <td class="message">${row.message_text || "-"}</td>
+              </tr>
+            `
+          )
+          .join("");
+      }
+
+      async function loadFeedback() {
+        const token = tokenInput.value.trim();
+        if (!token) {
+          statusEl.textContent = "先输入 ADMIN_TOKEN。";
+          return;
+        }
+
+        localStorage.setItem("parallelife_admin_token", token);
+        statusEl.textContent = "正在读取反馈。";
+
+        const response = await fetch("/api/feedback?limit=200", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+
+        if (!response.ok || !data.ok) {
+          statusEl.textContent = `读取失败：${data.error || response.status}`;
+          return;
+        }
+
+        renderRows(data.rows || []);
+        statusEl.textContent = `已读取 ${data.rows.length} 条反馈。`;
+      }
+
+      async function downloadCsv() {
+        const token = tokenInput.value.trim();
+        if (!token) {
+          statusEl.textContent = "先输入 ADMIN_TOKEN。";
+          return;
+        }
+
+        localStorage.setItem("parallelife_admin_token", token);
+        statusEl.textContent = "正在生成 CSV。";
+
+        const response = await fetch("/api/feedback?format=csv&limit=500", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.ok) {
+          statusEl.textContent = `导出失败：${response.status}`;
+          return;
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "parallelife-feedback.csv";
+        link.click();
+        URL.revokeObjectURL(url);
+        statusEl.textContent = "CSV 已开始下载。";
+      }
+
+      loadBtn.addEventListener("click", loadFeedback);
+      csvBtn.addEventListener("click", downloadCsv);
+    </script>
+  </body>
+</html>
